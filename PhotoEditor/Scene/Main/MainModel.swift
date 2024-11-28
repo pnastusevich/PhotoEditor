@@ -8,6 +8,5 @@
 import UIKit
 
 struct PhotoModel {
-    let photo: UIImage
-    let date: Date
+    let image: UIImage
 }
