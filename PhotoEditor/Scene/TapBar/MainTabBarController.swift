@@ -11,14 +11,13 @@ final class MainTabBarController: UITabBarController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         view.backgroundColor = .lightGray
         
         viewControllers = [
-            generateNavigationController(rootViewController: MainViewController(),
+            generateNavigationController(rootViewController: makeMainViewController(),
                                          title: "Main",
                                          image: UIImage(systemName: "scribble.variable")!),
-            generateNavigationController(rootViewController: SettingsViewController(),
+            generateNavigationController(rootViewController: makeSettingsViewController(),
                                          title: "Settings",
                                          image: UIImage(systemName: "scribble.variable")!)
         ]
@@ -30,5 +29,19 @@ final class MainTabBarController: UITabBarController {
         navigationVC.tabBarItem.image = image
         return navigationVC
     }
+    
+    private func makeMainViewController() -> UIViewController {
+            let photoManager = PhotoManager()
+        let photoModelFactory: (UIImage) -> PhotoModel = { image in
+            PhotoModel(image: image)
+        }
+            let mainViewModel = MainViewModel(photoManager: photoManager, photoModelFactory: photoModelFactory)
+            return MainViewController(mainViewModel: mainViewModel)
+        }
+        
+    private func makeSettingsViewController() -> UIViewController {
+        let settingsViewModel = SettingsViewModel()
+        return SettingsViewController(settingViewModel: settingsViewModel)
+        }
 }
 
