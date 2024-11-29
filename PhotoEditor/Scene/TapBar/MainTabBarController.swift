@@ -11,8 +11,8 @@ final class MainTabBarController: UITabBarController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .lightGray
-        
+        tabBar.backgroundColor = UIColor.systemGray5
+
         viewControllers = [
             generateNavigationController(rootViewController: makeMainViewController(),
                                          title: "Main",
@@ -41,7 +41,8 @@ final class MainTabBarController: UITabBarController {
         
     private func makeSettingsViewController() -> UIViewController {
         let settingsViewModel = SettingsViewModel()
-        return SettingsViewController(settingViewModel: settingsViewModel)
+        let dataSource = SettingsDataSource(cellModels: settingsViewModel.cells)
+        return SettingsViewController(settingsViewModel: settingsViewModel, dataSource: dataSource)
         }
 }
 

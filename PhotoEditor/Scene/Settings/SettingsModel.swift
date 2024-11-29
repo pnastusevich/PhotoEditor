@@ -6,3 +6,14 @@
 //
 
 import Foundation
+
+enum SettingsCellType {
+    case about
+}
+
+struct SettingsCellModel {
+    let title: String
+    let cellType: SettingsCellType
+}
+
+
