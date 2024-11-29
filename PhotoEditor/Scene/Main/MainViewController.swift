@@ -24,24 +24,16 @@ final class MainViewController: UIViewController {
     private var filterControl: UISegmentedControl = {
         let segmentedControl = UISegmentedControl(items: ["Original", "BW"])
         segmentedControl.selectedSegmentIndex = 0
-        segmentedControl.layer.shadowColor = UIColor.black.cgColor
-        segmentedControl.layer.shadowOpacity = 0.3
-        segmentedControl.layer.shadowOffset = .zero
-        
         return segmentedControl
     }()
     
     private let addButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Add Photo +", for: .normal)
+        button.setTitle("Add photo +", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 16)
         button.tintColor = .black
         button.backgroundColor = .white
         button.layer.cornerRadius = 5
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.3
-        button.layer.shadowOffset = .zero
-        
         return button
     }()
     
@@ -59,21 +51,19 @@ final class MainViewController: UIViewController {
         self.mainViewModel = mainViewModel
         super.init(nibName: nil, bundle: nil)
     }
-    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
     // MARK: View Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
-        
+
         setupUI()
         setupBindings()
         setupGestures()
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         filterControl.addTarget(self, action: #selector(filterControlChanged(_:)), for: .valueChanged)
-
     }
     
     @objc func saveButtonTapped() {
@@ -88,12 +78,6 @@ final class MainViewController: UIViewController {
         mainViewModel.pickPhoto()
     }
     
-    private func showSavePhotoResult(success: Bool, message: String) {
-        let alert = UIAlertController(title: success ? "Успех" : "Ошибка", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
-        present(alert, animated: true, completion: nil)
-    }
-    
     @objc func filterControlChanged(_ sender: UISegmentedControl) {
         guard let photo = mainViewModel.currentPhoto?.image else { return }
         let filterType: FilterType = filterControl.selectedSegmentIndex == 0 ? .original : .bw
@@ -101,7 +85,15 @@ final class MainViewController: UIViewController {
         photoImageView.image = filteredImage
     }
     
+    private func showSavePhotoResult(success: Bool, message: String) {
+        let alert = UIAlertController(title: success ? "Успех" : "Ошибка", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        present(alert, animated: true, completion: nil)
+    }
+    
+    // MARK: Setup UI
     private func setupUI() {
+        view.backgroundColor = .systemGray6
         view.addSubview(photoImageView)
         view.addSubview(filterControl)
         view.addSubview(addButton)
@@ -114,9 +106,7 @@ final class MainViewController: UIViewController {
     private func setupNavigationBar() {
         title = "Photo Editor"
         let saveButton = UIBarButtonItem(title: "Save 💾", style: .plain, target: self, action: #selector(saveButtonTapped))
-     
         navigationItem.rightBarButtonItem = saveButton
-        
     }
     
     private func layoutConstraints() {
@@ -159,57 +149,38 @@ extension MainViewController: UIGestureRecognizerDelegate {
     
     private func setupGestures() {
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
+        let rotationGesture = UIRotationGestureRecognizer(target: self, action: #selector(handleRotationGesture(_:)))
+
         photoImageView.isUserInteractionEnabled = true
         photoImageView.addGestureRecognizer(panGesture)
-        
-        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
         photoImageView.addGestureRecognizer(pinchGesture)
-        
-        let rotationGesture = UIRotationGestureRecognizer(target: self, action: #selector(handleRotationGesture(_:)))
         photoImageView.addGestureRecognizer(rotationGesture)
-        
+
         panGesture.delegate = self
         pinchGesture.delegate = self
         rotationGesture.delegate = self
     }
     
     @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
-        guard let gestureView = gesture.view else { return }
-        
-        let translation = gesture.translation(in: gestureView)
-        
-        switch gesture.state {
-        case .changed:
-            gestureView.center = CGPoint(
-                x: gestureView.center.x + translation.x,
-                y: gestureView.center.y + translation.y
-                )
-            gesture.setTranslation(.zero, in: view)
-        default:
-            break
+        let translation = gesture.translation(in: photoImageView)
+        if gesture.state == .changed {
+            mainViewModel.updateTranslation(by: translation)
+            gesture.setTranslation(.zero, in: photoImageView)
         }
     }
 
     @objc private func handlePinchGesture(_ gesture: UIPinchGestureRecognizer) {
-        guard let gestureView = gesture.view else { return }
-        
-        switch gesture.state {
-        case .changed:
-            gestureView.transform = gestureView.transform.scaledBy(x: gesture.scale, y: gesture.scale)
+        if gesture.state == .changed {
+            mainViewModel.updateScale(by: gesture.scale)
             gesture.scale = 1.0
-        default:
-            break
         }
     }
-    
+
     @objc private func handleRotationGesture(_ gesture: UIRotationGestureRecognizer) {
-        guard let gestureView = gesture.view else { return }
-        switch gesture.state {
-        case .changed:
-            gestureView.transform = gestureView.transform.rotated(by: gesture.rotation)
+        if gesture.state == .changed {
+            mainViewModel.updateRotation(by: gesture.rotation)
             gesture.rotation = 0
-        default:
-            break
         }
     }
 }
@@ -224,6 +195,12 @@ extension MainViewController {
                 self.photoImageView.isHidden = false
                 self.enterLabel.isHidden = true
                 self.filterControl.selectedSegmentIndex = 0
+            }
+        }
+        
+        mainViewModel.transformationDidChange = { [weak self] transform in
+            DispatchQueue.main.async {
+                self?.photoImageView.transform = transform
             }
         }
     }

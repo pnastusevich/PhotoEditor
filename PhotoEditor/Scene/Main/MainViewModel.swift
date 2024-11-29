@@ -16,23 +16,30 @@ protocol MainViewModelProtocol: AnyObject {
     
     var currentPhoto: PhotoModel? { get }
     var currentPhotoDidChange: ((PhotoModel?) -> Void)? { get set }
+    var transformationDidChange: ((CGAffineTransform) -> Void)? { get set }
     
     init(photoManager: PhotoManagerProtocol, photoModelFactory: @escaping (UIImage) -> PhotoModel)
     
     func pickPhoto()
     func savePhoto(completion: @escaping (Bool, String) -> Void)
-    
     func applyFilter(to photo: UIImage, filterType: FilterType) -> UIImage
+    func updateTranslation(by translation: CGPoint)
+    func updateScale(by scale: CGFloat)
+    func updateRotation(by rotation: CGFloat)
 }
 
 final class MainViewModel: MainViewModelProtocol {
-    
+
+    internal var transformationDidChange: ((CGAffineTransform) -> Void)?
     internal var currentPhotoDidChange: ((PhotoModel?) -> Void)?
-    
     internal var currentPhoto: PhotoModel?
     
     private let photoManager: PhotoManagerProtocol
     private let photoModelFactory: (UIImage) -> PhotoModel
+    
+    private var translation: CGPoint = .zero
+    private var scale: CGFloat = 1.0
+    private var rotation: CGFloat = 0.0
     
     init(photoManager: PhotoManagerProtocol, photoModelFactory: @escaping (UIImage) -> PhotoModel) {
         self.photoManager = photoManager
@@ -56,7 +63,6 @@ final class MainViewModel: MainViewModelProtocol {
     
     func savePhoto(completion: @escaping (Bool, String) -> Void) {
         guard let image = currentPhoto?.image else {
-            print("No photo to saved")
             return
         }
         
@@ -64,7 +70,7 @@ final class MainViewModel: MainViewModelProtocol {
             if success {
                 completion(true, "Фото успешно сохранено!")
             } else {
-                let errorMessage = error?.localizedDescription ?? "Произошла ошибка при сохранении фото."
+                let errorMessage = error?.localizedDescription ?? "Ошибка при сохранении фото."
                 completion(false, errorMessage)
             }
         }
@@ -90,5 +96,30 @@ final class MainViewModel: MainViewModelProtocol {
             return UIImage(cgImage: cgImage)
         }
         return photo
+    }
+    
+    // MARK: Work in Gesture
+    func updateTranslation(by translation: CGPoint) {
+        self.translation.x += translation.x
+        self.translation.y += translation.y
+        notifyTransformationChanged()
+    }
+    
+    func updateScale(by scale: CGFloat) {
+        self.scale *= scale
+        notifyTransformationChanged()
+    }
+    
+    func updateRotation(by rotation: CGFloat) {
+        self.rotation += rotation
+        notifyTransformationChanged()
+    }
+    
+    private func notifyTransformationChanged() {
+        let transform = CGAffineTransform.identity
+            .translatedBy(x: translation.x, y: translation.y)
+            .scaledBy(x: scale, y: scale)
+            .rotated(by: rotation)
+        transformationDidChange?(transform)
     }
 }
