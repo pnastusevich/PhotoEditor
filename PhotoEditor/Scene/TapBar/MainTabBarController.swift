@@ -31,11 +31,12 @@ final class MainTabBarController: UITabBarController {
     }
     
     private func makeMainViewController() -> UIViewController {
-            let photoManager = PhotoManager()
-        let photoModelFactory: (UIImage) -> PhotoModel = { image in
-            PhotoModel(image: image)
+        let photoManager = PhotoManager()
+        let filterManager = FilterManager()
+        let photoModelFactory: (Data) -> PhotoModel = { data in
+            PhotoModel(data: data)
         }
-            let mainViewModel = MainViewModel(photoManager: photoManager, photoModelFactory: photoModelFactory)
+        let mainViewModel = MainViewModel(photoManager: photoManager, filterManager: filterManager, photoModelFactory: photoModelFactory)
             return MainViewController(mainViewModel: mainViewModel)
         }
         
