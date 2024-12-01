@@ -79,10 +79,12 @@ final class MainViewController: UIViewController {
     }
     
     @objc func filterControlChanged(_ sender: UISegmentedControl) {
-        guard let photo = mainViewModel.currentPhoto?.image else { return }
+        guard let photoData = mainViewModel.currentPhoto?.data else { return }
         let filterType: FilterType = filterControl.selectedSegmentIndex == 0 ? .original : .bw
-        let filteredImage = mainViewModel.applyFilter(to: photo, filterType: filterType)
-        photoImageView.image = filteredImage
+        if let filteredData = mainViewModel.applyFilter(to: photoData, filterType: filterType),
+           let filteredImage = UIImage(data: filteredData) {
+            photoImageView.image = filteredImage
+        }
     }
     
     private func showSavePhotoResult(success: Bool, message: String) {
@@ -165,7 +167,7 @@ extension MainViewController: UIGestureRecognizerDelegate {
     @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
         let translation = gesture.translation(in: photoImageView)
         if gesture.state == .changed {
-            mainViewModel.updateTranslation(by: translation)
+            mainViewModel.updateTranslation(by: (x: Double(translation.x), y: Double(translation.y)))
             gesture.setTranslation(.zero, in: photoImageView)
         }
     }
@@ -191,7 +193,7 @@ extension MainViewController {
         mainViewModel.currentPhotoDidChange = { [weak self] photoModel in
             guard let self = self, let photoModel = photoModel else { return }
             DispatchQueue.main.async {
-                self.photoImageView.image = photoModel.image
+                self.photoImageView.image = UIImage(data: photoModel.data)
                 self.photoImageView.isHidden = false
                 self.enterLabel.isHidden = true
                 self.filterControl.selectedSegmentIndex = 0

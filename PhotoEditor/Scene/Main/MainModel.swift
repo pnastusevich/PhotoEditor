@@ -5,8 +5,13 @@
 //  Created by Паша Настусевич on 28.11.24.
 //
 
-import UIKit
+import Foundation
 
 struct PhotoModel {
-    let image: UIImage
+    let data: Data
+}
+
+enum FilterType {
+    case original
+    case bw
 }

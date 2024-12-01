@@ -15,15 +15,15 @@ enum PhotoManagerError: Error {
 }
 
 protocol PhotoManagerProtocol {
-    func pickPhoto(completion: @escaping (Result<PhotoModel, Error>) -> Void)
-    func savePhoto(_ photo: UIImage, completion: @escaping (Bool, Error?) -> Void)
+    func pickPhoto(completion: @escaping (Result<Data, Error>) -> Void)
+    func savePhoto(_ photoData: Data, completion: @escaping (Bool, Error?) -> Void)
 }
 
 class PhotoManager: PhotoManagerProtocol {
     
     private let picker = UIImagePickerController()
     
-    func pickPhoto(completion: @escaping (Result<PhotoModel, Error>) -> Void) {
+    func pickPhoto(completion: @escaping (Result<Data, Error>) -> Void) {
         guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
             completion(.failure(PhotoManagerError.photoLibraryUnavailable))
             return
@@ -35,8 +35,11 @@ class PhotoManager: PhotoManagerProtocol {
         PhotoPickerDelegate.shared.completionHandler = { result in
             switch result {
             case .success(let image):
-                let photoModel = PhotoModel(image: image)
-                completion(.success(photoModel))
+                if let data = image.pngData() {
+                    completion(.success(data))
+                } else {
+                    completion(.failure(PhotoManagerError.photoLibraryUnavailable))
+                }
             case .failure(let error):
                 completion(.failure(error))
             }
@@ -46,18 +49,22 @@ class PhotoManager: PhotoManagerProtocol {
             completion(.failure(PhotoManagerError.viewControllerUnavailable))
             return
         }
-        
         rootViewController.present(picker, animated: true)
         
     }
     
-    func savePhoto(_ photo: UIImage, completion: @escaping (Bool, Error?) -> Void) {
+    func savePhoto(_ photoData: Data, completion: @escaping (Bool, Error?) -> Void) {
+        guard let image = UIImage(data: photoData) else {
+            completion(false, PhotoManagerError.photoLibraryUnavailable)
+            return
+        }
+        
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
                 completion(false, PhotoManagerError.accessDenied)
                 return
             }
-            UIImageWriteToSavedPhotosAlbum(photo, nil, nil, nil)
+            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
             completion(true, nil)
         }
     }
